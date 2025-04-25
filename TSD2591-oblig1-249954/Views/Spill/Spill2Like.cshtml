@@ -4,6 +4,17 @@
 
 <h1 style="text-align:center;">4x4 Fargetabell - 2-Like Spill</h1>
 
+<div class="text-center">
+    <label for="brukerNavn">Ditt navn:</label>
+    <input type="text" id="brukerNavn" name="brukerNavn" required />
+</div>
+
+<!-- Her viser vi bekreftelsen -->
+<div class="text-center">
+    <p id="oppdateringStatus" style="color: green;"></p>
+</div>
+
+
 <table id="colorTable"></table>
 <div class="counter">Antall celler fjernet: <span id="removedCount">0</span></div>
 <div class="message" id="gameMessage"></div>
@@ -41,6 +52,7 @@
     const gameMessageElement = document.getElementById("gameMessage");
     const restartButton = document.getElementById("restartButton");
     const restartDiv = document.querySelector(".restart");
+    const statusElement = document.getElementById("oppdateringStatus");  // Status-melding
     let firstClickedCell = null;
     let removedCount = 0;
 
@@ -78,9 +90,41 @@
                 cell.style.backgroundColor = "transparent";
                 removedCount += 2;
                 removedCountElement.textContent = removedCount;
+
                 if (removedCount === 16) {
                     gameMessageElement.textContent = "Spillet er ferdig!";
                     restartDiv.style.display = "block";
+
+                    const brukerNavn = document.getElementById("brukerNavn").value;
+
+                    if (brukerNavn) {
+                        fetch("/Spill/OppdaterSpillCount", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ navn: brukerNavn })
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                statusElement.style.color = "green";
+                                statusElement.textContent = "Antall spill oppdatert for " + brukerNavn + "!";
+                            } else if (response.status === 404) {
+                                statusElement.style.color = "red";
+                                statusElement.textContent = "Bruker '" + brukerNavn + "' ble ikke funnet!";
+                            } else {
+                                statusElement.style.color = "red";
+                                statusElement.textContent = "Noe gikk galt ved oppdatering.";
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Error:", error);
+                            statusElement.style.color = "red";
+                            statusElement.textContent = "Feil ved tilkobling til server.";
+                        });
+                    } else {
+                        alert("Vennligst skriv inn navnet ditt før du spiller.");
+                    }
                 }
             }
             firstClickedCell.style.outline = "none";
@@ -93,6 +137,7 @@
         removedCountElement.textContent = removedCount;
         gameMessageElement.textContent = "";
         restartDiv.style.display = "none";
+        statusElement.textContent = "";   // Tøm status ved restart
         initializeTable();
     });
 
